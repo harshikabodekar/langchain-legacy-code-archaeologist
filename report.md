@@ -23,3 +23,28 @@ Files analysed: 15
 ## Findings
 
 - `.history/` (editor backup copies) was committed into the repo. It should be in `.gitignore`.
+
+## Stage 2: Cleanup candidates
+
+### Files nobody imports
+
+None found.
+
+### Very similar files
+
+**`app/admin/page.js` and `app/admin/(dashboard)/page.js` (95% similar)**
+- Issue: File A and File B are duplicate route pages in Next.js causing routing conflicts and confusion. File A includes the sign-out handler and button which is missing in File B.
+- Risk: medium
+- Suggestion: Keep File A (app/admin/page.js) because it contains the complete functionality including the sign-out feature, and delete File B (app/admin/(dashboard)/page.js).
+
+### Reviewed by hand
+
+The tool suggested keeping `app/admin/page.js` and deleting `app/admin/(dashboard)/page.js`. After checking where sign-out lives, this looks wrong:
+
+- `app/admin/page.js` has its own sign-out button (`handleSignOut`)
+- `app/admin/(dashboard)/layout.js` renders `AdminHeader`, which already provides sign-out
+- so `(dashboard)/page.js` does not need its own, and `app/admin/page.js` is most likely the older copy
+
+Likely fix: keep `app/admin/(dashboard)/page.js`, remove `app/admin/page.js`, after confirming the app still builds.
+
+**Lesson:** the model judged the files in isolation. It did not know the layout already handled sign-out, so its risk rating and suggestion needed a human check.
