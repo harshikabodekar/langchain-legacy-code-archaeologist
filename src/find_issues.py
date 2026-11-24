@@ -57,28 +57,41 @@ for i in range(len(paths)):
         if score > 0.6:
             similar.append((paths[i], paths[j], round(score, 2)))
 
+# 4. simple checks done by code, no AI
+other_checks = ""
+if os.path.isdir(os.path.join(PROJECT, ".history")):
+    other_checks += "- `.history/` (editor backup copies) is in the repo. Add it to `.gitignore`.\n"
+for folder, dirs, names in os.walk(PROJECT):
+    dirs[:] = [d for d in dirs if d not in ("node_modules", ".git", ".next")]
+    for name in names:
+        if name.startswith(".env"):
+            other_checks += f"- `{short(os.path.join(folder, name))}` looks like an env file. Make sure it holds no secrets in the repo.\n"
+if other_checks == "":
+    other_checks = "None found.\n"
+
 print("unused files:", len(unused), "| similar pairs:", len(similar))
 
-# 4. ask the model to judge each candidate
-section = "## Stage 2: Cleanup candidates\n\n"
+# 5. ask the model to judge each candidate
+text = "# 2. Cleanup Candidates\n\n"
+text += "> Items under the first two headings are AI-generated judgments. Verify before acting.\n\n"
 
-section += "### Files nobody imports\n\n"
+text += "## Files nobody imports\n\n"
 if not unused:
-    section += "None found.\n\n"
+    text += "None found.\n\n"
 for path in unused:
     prompt = (
         NOTE + "\nNo other file imports this file. Is it dead code?\n"
         "Give the issue, the risk of deleting it (low, medium or high) and what to do.\n\n"
-        "File: " + short(path) + "\n" + files[path][:3000]
+        "File: " + short(path) + "\n" + files[path][:6000]
     )
     f = judge.invoke(prompt)
-    section += f"**`{short(path)}`**\n- Issue: {f.issue}\n- Risk: {f.risk}\n- Suggestion: {f.suggestion}\n\n"
+    text += f"### `{short(path)}`\n- Issue: {f.issue}\n- Risk: {f.risk}\n- Suggestion: {f.suggestion}\n\n"
     print("judged:", short(path))
     time.sleep(1)
 
-section += "### Very similar files\n\n"
+text += "## Very similar files\n\n"
 if not similar:
-    section += "None found.\n\n"
+    text += "None found.\n\n"
 for a, b, score in similar:
     prompt = (
         NOTE + f"\nThese two files are {int(score * 100)}% similar. Is one a leftover copy?\n"
@@ -87,13 +100,14 @@ for a, b, score in similar:
         "File B: " + short(b) + "\n" + files[b][:6000]
     )
     f = judge.invoke(prompt)
-    section += f"**`{short(a)}` and `{short(b)}` ({int(score * 100)}% similar)**\n- Issue: {f.issue}\n- Risk: {f.risk}\n- Suggestion: {f.suggestion}\n\n"
+    text += f"### `{short(a)}` and `{short(b)}` ({int(score * 100)}% similar)\n- Issue: {f.issue}\n- Risk: {f.risk}\n- Suggestion: {f.suggestion}\n\n"
     print("judged pair:", short(a), "|", short(b))
     time.sleep(1)
 
-# 5. add the section to report.md (replaces an older stage 2 section if it exists)
-report = open("report.md", encoding="utf-8").read().split("## Stage 2")[0]
-with open("report.md", "w", encoding="utf-8") as out:
-    out.write(report.rstrip() + "\n\n" + section)
+text += "## Other checks (done by code, not AI)\n\n" + other_checks
 
-print("report.md updated")
+os.makedirs("report", exist_ok=True)
+with open("report/2_findings.md", "w", encoding="utf-8") as out:
+    out.write(text)
+
+print("saved report/2_findings.md")
