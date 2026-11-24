@@ -83,13 +83,13 @@ Target: a Next.js lead-capture app (leaddesk).
 - Step 2 flagged `app/admin/page.js` and `app/admin/(dashboard)/page.js` as 95% similar, risk low.
 - The AI gave two options and did not pick one. Its first option was to delete the dashboard page.
 - Human review: `grep signOut` showed sign out lives in `AdminHeader` in the layout, so `app/admin/page.js` is the older copy.
-- Step 4 raised the risk to medium, marked a human check needed, and printed `CONFLICT`.
+- Step 4 marked a human check needed and printed `CONFLICT`, showing both sides.
 - Decision: delete `app/admin/page.js`, keep the `(dashboard)` version. Not applied, by choice. The report is the deliverable.
 
 ## Known limits
 
 - "Unused file" is a simple check: no other file imports its filename. It can be wrong.
-- The AI missed that both admin pages map to the same `/admin` URL. The human caught it.
+- The AI named the route conflict but could not tell which file was the real one. The human did.
 - Only 1 finding has been human-reviewed so far. The rest are unchecked.
 - Max 40 files mapped, and long files are cut (3000 characters for the map, 6000 for findings).
 
